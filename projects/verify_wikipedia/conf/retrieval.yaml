@@ -1,5 +1,4 @@
 defaults:
-  - datasets: evaluation
   - retriever: default
 
 retriever_config:

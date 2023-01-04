@@ -65,8 +65,10 @@ class SchemaPreprocessor:
 
 class WaferPreprocessor(SchemaPreprocessor):
     def preprocess_query(self, query, training: bool = False):
+        """Convert passage leading up to citation + article title to tensor."""
 
         # extract title, section, text from the query string
+        # NOTE: section not used
         SEP_split = query.split("[SEP]")
         if len(SEP_split) == 1:
             # logger.warning(f"Text did not have three SEP sections: {len(SEP_split)}")
@@ -78,15 +80,15 @@ class WaferPreprocessor(SchemaPreprocessor):
             title, section, text_cit = SEP_split
         CIT_split = text_cit.split("[CIT]")
 
+        # _after_cit is never used but retained for clarity
         if len(CIT_split) == 1:
             logger.warning(f"Text did not have CIT section: {len(CIT_split)}")
-            before_cit, after_cit = CIT_split[0], ""
+            before_cit, _after_cit = CIT_split[0], ""
         else:
-            before_cit, after_cit = text_cit.split("[CIT]")
+            before_cit, _after_cit = text_cit.split("[CIT]")
 
         # do some normalization and some hacks
         title_text = " ".join(title.split())
-        section_text = " ".join(section.split())
         # double cit because BertTokenizer replaces last token with [SEP]
         # now only get tokens in front of citation
         before_cit_text = " ".join(before_cit.split())
@@ -102,69 +104,19 @@ class WaferPreprocessor(SchemaPreprocessor):
 
         fields = {
             "title": None,
-            "section": None,
             "bc_text": None,
-            "ac_text": None,
         }
 
-        if question_transform_type == "only_before_cit" or question_transform_type == "only_before_cit+title":
+        if question_transform_type == "only_before_cit+dropout_title":
+            # NOTE: dropout only applies to training so it has no effect here
             fields["title"] = title_text
             fields["bc_text"] = before_cit_text
-        elif question_transform_type == "only_before_cit+dropout_title+section":
-            if training:
-                dropout_field = torch.rand(1)
-                if dropout_field[0] < self.cfg.input_transform.question.dropout:
-                    fields["title"] = self.tensorizer.get_mask_token()
-                else:
-                    fields["title"] = title_text
-            else:
-                fields["title"] = title_text
-            fields["section"] = section_text
-            fields["bc_text"] = before_cit_text
-        elif question_transform_type == "only_before_cit+dropout_title":
-            if training:
-                dropout_field = torch.rand(1)
-                if dropout_field[0] < self.cfg.input_transform.question.dropout:
-                    fields["title"] = self.tensorizer.get_mask_token()
-                else:
-                    fields["title"] = title_text
-            else:
-                fields["title"] = title_text
-            fields["bc_text"] = before_cit_text
-        elif question_transform_type == "only_before_cit+dropout_title+dropout_section":
-            if training:
-                dropout_field = torch.rand(1)
-                if dropout_field[0] < self.cfg.input_transform.question.dropout:
-                    fields["section"] = self.tensorizer.get_mask_token()
-                else:
-                    fields["section"] = section_text
-            else:
-                fields["section"] = section_text
-            fields["title"] = title_text
-            fields["bc_text"] = before_cit_text
-        elif (
-            question_transform_type == "only_before_cit+section"
-            or question_transform_type == "only_before_cit+title+section"
-            or question_transform_type == "only_before_cit+section+title"
-        ):
-            fields["title"] = title_text
-            fields["section"] = section_text
-            fields["bc_text"] = before_cit_text
-        elif question_transform_type == "only_before_cit+no_title":
-            fields["bc_text"] = before_cit_text
-        elif question_transform_type == "only_before_cit_30w" or question_transform_type == "only_before_cit_30w+title":
-            fields["title"] = title_text
-            fields["bc_text"] = " ".join(list(before_cit_text.split())[-30:])
-        elif question_transform_type == "only_before_cit_30w+no_title":
-            fields["bc_text"] = " ".join(list(before_cit_text.split())[-30:])
         else:
             raise Exception(f"Unknown question_transform_type: {question_transform_type}")
 
         field_tensors = {
             "title": None,
-            "section": None,
             "bc_text": None,
-            "ac_text": None,
         }
 
         self.tensorizer.set_pad_to_max(False)
@@ -177,9 +129,7 @@ class WaferPreprocessor(SchemaPreprocessor):
 
         fields_max_perc_size = {
             "title": 0.2,
-            "section": 0.2,
             "bc_text": None,
-            "ac_text": 0.2,
         }
         for k in field_tensors.keys():
             if fields_max_perc_size[k]:
@@ -188,7 +138,7 @@ class WaferPreprocessor(SchemaPreprocessor):
         SEP_LEN = 1
         CLS_LEN = 1
 
-        for k in ["ac_text", "section", "title"]:
+        for k in ["title"]:
             if (
                 sum([len(t) + SEP_LEN for t in field_tensors.values() if t is not None]) + CLS_LEN
                 > self.tensorizer.max_length
@@ -203,7 +153,7 @@ class WaferPreprocessor(SchemaPreprocessor):
             blocked_size = sum(
                 [
                     len(field_tensors[k]) + SEP_LEN
-                    for k in ["ac_text", "section", "title"]
+                    for k in ["title"]
                     if field_tensors[k] is not None
                 ]
             )
@@ -218,9 +168,7 @@ class WaferPreprocessor(SchemaPreprocessor):
 
         ordered_fields_and_tags = [
             ("title", tags["[SEP]"]),
-            ("section", tags["[SEP]"]),
             ("bc_text", tags["[CIT]"]),
-            ("ac_text", tags["[SEP]"]),
         ]
 
         tensor_list = list()
@@ -241,6 +189,7 @@ class WaferPreprocessor(SchemaPreprocessor):
         return torch.cat(tensor_list, dim=0).long()
 
     def preprocess_passage(self, ctx: WaferPassage, training: bool = False) -> torch.Tensor:
+        """Convert passage from website to tensor."""
 
         try:
             text = json.loads(ctx.text)["contents"]  # for BM25 pyserini which can have json packed into the text
@@ -265,15 +214,11 @@ class WaferPreprocessor(SchemaPreprocessor):
         fields = {
             "title": None,
             "text": None,
-            "url": None,
-            "rank": None,
         }
 
         field_tensors = {
             "title": None,
             "text": None,
-            "url": None,
-            "rank": None,
         }
 
         if passage_transform_type == "text":
@@ -299,8 +244,6 @@ class WaferPreprocessor(SchemaPreprocessor):
         ordered_fields_and_tags = [
             ("title", tags["[SEP]"]),
             ("text", tags["[SEP]"]),
-            ("url", tags["[SEP]"]),
-            ("rank", tags["[SEP]"]),
         ]
 
         tensor_list = list()

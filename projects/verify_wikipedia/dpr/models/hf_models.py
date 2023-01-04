@@ -10,7 +10,7 @@ Encoder model wrappers based on HuggingFace code
 """
 
 import logging
-from typing import Tuple, List, Union
+from typing import Tuple, List
 
 import torch
 import transformers
@@ -20,11 +20,9 @@ from torch import nn
 if transformers.__version__.startswith("4"):
     from transformers import BertConfig, BertModel
     from transformers import RobertaConfig, RobertaModel
-    from transformers import DebertaV2Config, DebertaV2Model
     from transformers import AdamW
     from transformers import BertTokenizer
     from transformers import RobertaTokenizer
-    from transformers import DebertaV2Tokenizer
     from transformers.modeling_outputs import (
         BaseModelOutput,
         SequenceClassifierOutput,
@@ -39,7 +37,7 @@ else:
 
     # from transformers import Wav2Vec2Model, Wav2Vec2Config  # will fail
 from dpr.models.biencoder import BiEncoder, DocumentBiEncoder
-from dpr.models.reranker import ColbertRerankerBiEncoder, BERTRerankerCrossEncoder
+from dpr.models.reranker import BERTRerankerCrossEncoder
 from dpr.utils.data_utils import Tensorizer
 
 logger = logging.getLogger(__name__)
@@ -48,15 +46,9 @@ logger = logging.getLogger(__name__)
 def get_hf_biencoder_components(hf_model_name, cfg, inference_only: bool = False, **kwargs):
     dropout = cfg.base_model.dropout if hasattr(cfg.base_model, "dropout") else 0.0
 
-    if hf_model_name == "bert":
-        hf_model_class = HFEncoder_BertModel
-        tensorizer = get_bert_tensorizer(cfg)
-    elif hf_model_name == "roberta":
+    if hf_model_name == "roberta":
         hf_model_class = HFEncoder_RobertaModel
         tensorizer = get_roberta_tensorizer(cfg)
-    elif hf_model_name == "deberta":
-        hf_model_class = HFEncoder_DebertaModel
-        tensorizer = get_deberta_tensorizer(cfg)
 
     question_encoder = hf_model_class.init_encoder(
         cfg.base_model.pretrained_model_cfg,
@@ -92,11 +84,7 @@ def get_hf_biencoder_components(hf_model_name, cfg, inference_only: bool = False
             fix_ctx_encoder = False
 
     if hasattr(cfg, "model_class") and cfg.model_class:
-        if cfg.model_class == "DocumentBiEncoder":
-            biencoder = DocumentBiEncoder(cfg, question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
-        elif cfg.model_class == "ColbertRerankerBiEncoder":
-            biencoder = ColbertRerankerBiEncoder(cfg, question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
-        elif cfg.model_class == "BERTRerankerCrossEncoder":
+        if cfg.model_class == "BERTRerankerCrossEncoder":
             biencoder = BERTRerankerCrossEncoder(cfg, question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
         else:
             raise Exception(f"Unknown cfg.model_class={cfg.model_class}")
@@ -114,57 +102,6 @@ def add_token_type_embeddings(model):
         model._init_weights(new_embeddings)
         new_embeddings.weight.data[:1, :] = old_embeddings.weight.data[:1, :]
         model.embeddings.token_type_embeddings = new_embeddings
-
-
-def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
-
-    dropout = cfg.base_model.dropout if hasattr(cfg.base_model, "dropout") else 0.0
-
-    question_encoder = HFBertEncoder.init_encoder(
-        cfg.base_model.pretrained_model_cfg,
-        projection_dim=cfg.base_model.projection_dim,
-        dropout=dropout,
-        pretrained=cfg.base_model.pretrained,
-        **kwargs,
-    )
-    if hasattr(cfg.base_model, "share_parameters") and cfg.base_model.share_parameters:
-        ctx_encoder = question_encoder
-    else:
-        ctx_encoder = HFBertEncoder.init_encoder(
-            cfg.base_model.pretrained_model_cfg,
-            projection_dim=cfg.base_model.projection_dim,
-            dropout=dropout,
-            pretrained=cfg.base_model.pretrained,
-            **kwargs,
-        )
-
-    fix_ctx_encoder = cfg.resume.fix_ctx_encoder if hasattr(cfg.resume, "fix_ctx_encoder") else False
-
-    if hasattr(cfg, "model_class") and cfg.model_class:
-        if cfg.model_class == "DocumentBiEncoder":
-            biencoder = DocumentBiEncoder(cfg, question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
-        elif cfg.model_class == "ColbertRerankerBiEncoder":
-            biencoder = ColbertRerankerBiEncoder(cfg, question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
-        elif cfg.model_class == "BERTRerankerCrossEncoder":
-            biencoder = BERTRerankerCrossEncoder(cfg, question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
-        else:
-            raise Exception(f"Unknown cfg.model_class={cfg.model_class}")
-    else:
-        biencoder = BiEncoder(cfg, question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
-
-    optimizer = (
-        get_optimizer(
-            biencoder,
-            learning_rate=cfg.trainer.learning_rate,
-            adam_eps=cfg.trainer.adam_eps,
-            weight_decay=cfg.trainer.weight_decay,
-        )
-        if not inference_only
-        else None
-    )
-
-    tensorizer = get_bert_tensorizer(cfg)
-    return tensorizer, biencoder, optimizer
 
 
 class HFBertEncoder(BertModel):
@@ -239,19 +176,6 @@ class HFBertEncoder(BertModel):
         return self.config.hidden_size
 
 
-# TODO: unify tensorizer init methods
-def get_bert_tensorizer(cfg):
-    sequence_length = cfg.base_model.sequence_length
-    do_lower_case = cfg.input_transform.do_lower_case
-    pretrained_model_cfg = cfg.base_model.pretrained_model_cfg
-
-    tokenizer = get_bert_tokenizer(pretrained_model_cfg, do_lower_case=do_lower_case)
-    if cfg.special_tokens:
-        _add_special_tokens(tokenizer, cfg.special_tokens)
-
-    return BertTensorizer(tokenizer, sequence_length)
-
-
 def get_roberta_tensorizer(cfg):
     sequence_length = cfg.base_model.sequence_length
     do_lower_case = cfg.input_transform.do_lower_case
@@ -261,27 +185,6 @@ def get_roberta_tensorizer(cfg):
         pretrained_model_cfg, do_lower_case=do_lower_case, additional_special_tokens=list(cfg.special_tokens)
     )
     return RobertaTensorizer(tokenizer, sequence_length)
-
-
-def get_deberta_tensorizer(cfg):
-    sequence_length = cfg.base_model.sequence_length
-    do_lower_case = cfg.input_transform.do_lower_case
-    pretrained_model_cfg = cfg.base_model.pretrained_model_cfg
-
-    tokenizer = get_deberta_tokenizer(
-        pretrained_model_cfg, do_lower_case=do_lower_case, additional_special_tokens=list(cfg.special_tokens)
-    )
-    return DebertaTensorizer(tokenizer, sequence_length)
-
-
-def get_bert_tensorizer_p(
-    pretrained_model_cfg: str, sequence_length: int, do_lower_case: bool = True, special_tokens: List[str] = []
-):
-    tokenizer = get_bert_tokenizer(pretrained_model_cfg, do_lower_case=do_lower_case)
-    if special_tokens:
-        _add_special_tokens(tokenizer, special_tokens)
-
-    return BertTensorizer(tokenizer, sequence_length)
 
 
 def _add_special_tokens(tokenizer, special_tokens):
@@ -353,22 +256,9 @@ def get_optimizer_grouped(
     return optimizer
 
 
-def get_bert_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
-    return BertTokenizer.from_pretrained(pretrained_cfg_name, do_lower_case=do_lower_case)
-
-
 def get_roberta_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True, additional_special_tokens=None):
     # still uses HF code for tokenizer since they are the same
     return RobertaTokenizer.from_pretrained(
-        pretrained_cfg_name, do_lower_case=do_lower_case, additional_special_tokens=additional_special_tokens
-    )
-
-
-def get_deberta_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True, additional_special_tokens=None):
-    # still uses HF code for tokenizer since they are the same
-    if "deberta-xlarge" in pretrained_cfg_name:
-        pretrained_cfg_name = "microsoft/deberta-large"
-    return DebertaV2Tokenizer.from_pretrained(
         pretrained_cfg_name, do_lower_case=do_lower_case, additional_special_tokens=additional_special_tokens
     )
 
@@ -432,28 +322,6 @@ class HFEncoderMixin:
         return self.config.hidden_size
 
 
-class HFEncoder_BertModel(HFEncoderMixin, BertModel):
-    def __init__(self, config, project_dim: int = 0):
-        BertModel.__init__(self, config)
-        assert config.hidden_size > 0, "Encoder hidden_size can't be zero"
-        self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
-        self.init_weights()
-
-    @classmethod
-    def init_encoder(
-        cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
-    ) -> BertModel:
-        logger.info("Initializing HF BertModel Encoder. cfg_name=%s", cfg_name)
-        cfg = BertConfig.from_pretrained(cfg_name if cfg_name else "bert-base-uncased")
-        if dropout != 0:
-            cfg.attention_probs_dropout_prob = dropout
-            cfg.hidden_dropout_prob = dropout
-        if pretrained:
-            return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
-        else:
-            return HFEncoder_BertModel(cfg, project_dim=projection_dim)
-
-
 class HFEncoder_RobertaModel(HFEncoderMixin, RobertaModel):
     def __init__(self, config, project_dim: int = 0):
         RobertaModel.__init__(self, config)
@@ -474,29 +342,6 @@ class HFEncoder_RobertaModel(HFEncoderMixin, RobertaModel):
             return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
         else:
             return HFEncoder_RobertaModel(cfg, project_dim=projection_dim)
-
-
-class HFEncoder_DebertaModel(HFEncoderMixin, DebertaV2Model):
-    def __init__(self, config, project_dim: int = 0):
-        DebertaV2Model.__init__(self, config)
-        assert config.hidden_size > 0, "Encoder hidden_size can't be zero"
-        self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
-        self.init_weights()
-
-    @classmethod
-    def init_encoder(
-        cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
-    ) -> DebertaV2Model:
-        logger.info("Initializing HF DebertaV2Model Encoder. cfg_name=%s", cfg_name)
-        cfg = DebertaV2Config.from_pretrained(cfg_name if cfg_name else "deberta-base")
-        cfg.type_vocab_size = 2
-        if dropout != 0:
-            cfg.attention_probs_dropout_prob = dropout
-            cfg.hidden_dropout_prob = dropout
-        if pretrained:
-            return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
-        else:
-            return HFEncoder_DebertaModel(cfg, project_dim=projection_dim)
 
 
 class BertTensorizer(Tensorizer):
@@ -590,8 +435,3 @@ class BertTensorizer(Tensorizer):
 class RobertaTensorizer(BertTensorizer):
     def __init__(self, tokenizer, max_length: int, pad_to_max: bool = True):
         super(RobertaTensorizer, self).__init__(tokenizer, max_length, pad_to_max=pad_to_max)
-
-
-class DebertaTensorizer(BertTensorizer):
-    def __init__(self, tokenizer, max_length: int, pad_to_max: bool = True):
-        super(DebertaTensorizer, self).__init__(tokenizer, max_length, pad_to_max=pad_to_max)

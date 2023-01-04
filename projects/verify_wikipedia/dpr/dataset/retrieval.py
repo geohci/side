@@ -12,7 +12,7 @@ import pickle
 import sys
 import zlib
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import filelock
 import hydra

@@ -1,0 +1,6 @@
+hydra-core
+jsonlines
+omegaconf
+torch
+tqdm
+transformers

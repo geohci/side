@@ -1,27 +1,20 @@
-![side logo](img/side_logo.png)
---------------------------------------------------------------------------------
+This is a fork of Facebook's Side project: https://github.com/facebookresearch/side
 
-Welcome! This is an effort to improve citations on Wikipedia.
-To read more about the overarching goals of this effort, please see our article on [ML-Assisted Wikipedia Editing](https://meta.wikimedia.org/wiki/Research:Machine_Learning_Assisted_Wikipedia_Editing).
+I have isolated just the code necessary for comparing a passage with a citation and a passage from an external website
+to determine how well the citation supports the text. This means I have removed a lot of code related to training and
+other parameterizations of the models.
 
-The Side system is described in the following paper:
+I have also added a script `verify.py` that processes a single example pair of citation passage and source passage
+to show how the model might be used to check new citations. The model itself can be downloaded per
+[the original README](https://github.com/facebookresearch/side/tree/main/projects/verify_wikipedia#downloading-index-and-models)
+from this URL: https://dl.fbaipublicfiles.com/side/verifier.tar.gz
 
-```bibtex
-@inproceedings{petroni-etal-2022-improving,
-    title = "Improving Wikipedia Verifiability with AI",
-    author = {Petroni, Fabio  and Broscheit, Samuel and Piktus, Aleksandra and Lewis, Patrick and Izacard, Gautier and Hosseini, Lucas and Dwivedi-Yu, Jane and Lomeli, Maria and Schick, Timo and Mazaré, Pierre-Emmanuel and Joulin, Armand and Grave, Edouard  e Riedel, Sebastian},
-    url = "https://openreview.net/forum?id=qfTqRtkDbWZ",
-    year = "2022"
-}
-```
+NOTE: I have not evaluated what can be deleted but I think that file contains a few important pieces:
+* `verifier/outputs/checkpoint.best_validation_acc`: model weights (notably, you can delete `checkpoint.best_validation_loss`)
+* `verifier/predictions/best_validation_acc__wafer_ccnet/checkpoint_cfg.yaml`: model config
+* `verifier/.hydra/`: more config?
 
-[https://openreview.net/forum?id=qfTqRtkDbWZ](https://openreview.net/forum?id=qfTqRtkDbWZ)
-
-Read our blog post [https://tech.fb.com/artificial-intelligence/2022/07/how-ai-could-help-make-wikipedia-entries-more-accurate/](https://tech.fb.com/artificial-intelligence/2022/07/how-ai-could-help-make-wikipedia-entries-more-accurate/).
-
-**Check out the Side demo at [https://verifier.sideeditor.com](https://verifier.sideeditor.com)!**
-
-Code and models in [projects/verify_wikipedia](projects/verify_wikipedia).
-
-## License
-Side is MIT licensed. See the [LICENSE](LICENSE) file for details.
+External components:
+* Fetching HTML for a given URL and parsing into passages: https://public.paws.wmcloud.org/User:Isaac_(WMF)/side/html_to_passages.ipynb
+* Fetching a citation from a Wikipedia article and parsing into a passage + URL: TODO
+* API for combining the components together: TODO
