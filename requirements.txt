@@ -1,0 +1,13 @@
+beautifulsoup4
+Flask
+Flask-Cors
+hydra-core
+jsonlines
+mwapi
+mwparserfromhell
+omegaconf
+pywikibot
+PyYAML
+torch
+tqdm
+transformers

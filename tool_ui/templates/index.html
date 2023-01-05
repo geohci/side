@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>Side: English Wikipedia Citation Evaluation</title>
+	<link rel="shortcut icon" href="./static/favicon.ico">
+	<meta name="viewport" content="width = device-width, initial-scale=1, user-scalable = no" />
+	<link href="https://tools-static.wmflabs.org/fontcdn/css?family=Merriweather:400,400italic,700,700italic&subset=latin" rel="stylesheet" type="text/css">
+	<link href='https://tools-static.wmflabs.org/fontcdn/css?family=Lato:400,400italic,700,700italic&subset=latin' rel='stylesheet' type='text/css'>
+	<link href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/css/jquery.dataTables.min.css" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" href="./static/style.css" />
+</head>
+
+<body>
+	<script type="text/javascript">
+		var body = document.body;
+		body.classList.add('js');
+	</script>
+
+	<div id="origin_bar">
+		<div class="boxwidth--1-1 padded--left padded--right">
+			<a href="https://research.wikimedia.org/" class="origin_title"><img src="./static/Wikimedia-Foundation-logo.svg" alt="Wikimedia Foundation logo" />Wikimedia Research</a>
+		</div>
+	</div>
+
+	<article id="tool_holder">
+		<div id="tool_header--holder" class="boxwidth--1-1 padded--left padded--right">
+			<header id="tool_header">
+				<h1>Side: English Wikipedia Citation Evaluation</h1>
+				<div class="meta">
+					<div class="disclaimer note">
+						<p>No guarantees are made that this tool will be maintained.</p>
+						<p>This is an experimental tool hosted on <a href="https://wikitech.wikimedia.org/wiki/Portal:Toolforge">Toolforge</a>. No additional personal data is collected by this tool per the Cloud Services
+							<a href="https://wikitech.wikimedia.org/wiki/Wikitech:Cloud_Services_Terms_of_use" target="_blank" rel="noopener">Terms of Use</a>.</p>
+					</div>
+					<div class="description padded--right">
+						<p>This tool showcases a machine learning (AI) model that evaluates citations on English Wikipedia and attempts to determine how well the text of any external source URLs supports the claim in the Wikipedia article.</p>
+						<p>This model was developed by Facebook as part of the <a href="https://github.com/facebookresearch/side">Side Project</a> and this tool merely tries to showcase how the model might be applied to help editors prioritize citations to fact-check on Wikipedia.</p>
+						<p>While the model was carefully developed, it is not perfect because the data for training a citation verification engine is noisy and reliably/efficiently extracting and verifying passages from Wikipedia and arbitrary digital sources on the web is tricky at best.</p>
+						<p>The model scores should not be treated as clear evidence for or against a citation but as suggestions for which citations might most need improvement.</p>
+						<p>A failure to verify a passage could be because the website no longer exists or is paywalled or is formatted oddly and therefore no passages were extracted.</p>
+					</div>
+				</div>
+			</header>
+		</div>
+
+		<div class="separator"></div>
+
+		<section id="topic" class="boxwidth--1-1 padded--left padded--right">
+			<main id="tool_main">
+				<section class="form">
+					<form action="#results">
+						<div class="cols cols3">
+							<div class="col col2">
+								<label class="placeholder"><span class="field_name">Article title -- e.g., Toni Morrison</span>
+								{% if title %}
+									<input type="text" value="{{title}}" placeholder="Placeholder text" id="page_title"/>
+								</label>
+								{% else %}
+									<input type="text" value="" placeholder="Placeholder text" id="page_title"/>
+								{% endif %}
+								</label>
+							</div>
+							<div class="col col1">
+								<span class="field_name"></span>
+								<input type="submit" value="Submit" id="btnSubmit" />
+							</div>
+						</div>
+					</form>
+				</section>
+				<section class="text" id="results">
+					<!-- Empty section to hold results -->
+				</section>
+			</main>
+		</section>
+	</article>
+
+	<footer id="tool_footer">
+		<div id="tool_footer-in" class="boxwidth--1-1 padded--left padded--right">
+			<p>Interface developed by <span class="tool-author"><a href="https://meta.wikipedia.org/wiki/User:Isaac_(WMF)">Isaac (WMF)</a></span> to showcase <a href="https://github.com/facebookresearch/side">Side verifier model</a>.</p>
+			<ul>
+				<li><a href="https://github.com/geohci/side">View Source</a></li>
+				<li><a href="https://arxiv.org/abs/2207.06220">Model Details</a></li>
+				<li><a href="https://github.com/geohci/side/blob/main/LICENSE">License</a></li>
+			</ul>
+		</div>
+	</footer>
+
+
+	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
+	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$('form label.placeholder').each(function() {
+				if (!$('input, textarea, select', this).val()) {
+	 				$(this).addClass('off');
+				}
+				$(this).on('focusin', function() {
+					$(this).removeClass('off');
+				});
+				$(this).on('focusout', function() {
+					if (!$('input, textarea, select', this).val()) {
+						$(this).addClass('off');
+					}
+				});
+				$('*[placeholder]', this).attr('placeholder', '');
+			});
+		});
+	</script>
+
+	<script type="text/javascript">
+		$('#btnSubmit').click(function (e) {
+		   e.preventDefault(); querySideAPI();
+		});
+
+		window.onload = function() {
+			if (document.getElementById('page_title').value) {
+				querySideAPI();
+			}
+		}
+
+		var render_results = function(data) {
+			if ("error" in data) {
+				$("#results").append("<br><p>Error: " + data["error"] + "</p>");
+			}
+			else {
+				$("#results").append('<br><h3><a href="' + data["article"] + '">' + document.getElementById('page_title').value + '</a></h3>');
+			  	if (data["claims"].length > 0) {
+					var table_data = [];
+					var table_html = '<table id="results-table">';
+					table_html += '<thead><tr><th>Section</th><th>Claim</th><th>Source URL</th><th>Best Passage</th><th>Score</th></tr></thead>';
+					table_html += '</table>';
+					$("#results").append(table_html);
+					for (var c_idx in data["claims"]) {
+						var row = {};
+						row['Section'] = {"display": data["claims"][c_idx]["section"], "sort": c_idx};
+						row['Claim'] = {"value":data["claims"][c_idx]["text"], "display":'<p>' + data["claims"][c_idx]["text"].replace('[CIT]', '<b>[CIT]</b>') + '</p>'};
+						row['Source URL'] = {"value":data["claims"][c_idx]["url"], "display":'<a href="' + data["claims"][c_idx]["url"] + '">' + data["claims"][c_idx]["url"] + '</a>'};
+						row['Best Passage'] = '';
+						row['Score'] = '';
+						table_data.push(row);
+					}
+					console.log(table_data);
+					$('#results-table').DataTable( {
+						"data": table_data,
+						"columns": [{'data': "Section", "render": {
+									  "sort": "sort",
+									  "display": "display"
+										}
+									},
+									{'data': "Claim", "render": {
+									  "_": "value",
+									  "display": "display"
+										}
+									},
+									{'data': "Source URL", "render": {
+									  "_": "value",
+									  "display": "display"
+										}
+									},
+									{'data': "Best Passage"},
+									{'data': "Score"},],
+						"searching": false,
+						"scrollY": "600px",
+						"paging": false,
+						"order": [1, 'desc']
+					} );
+					get_scores();
+			  	}
+			  	else {
+					$("#results").append("<li>No claims found.</li>");
+			  	}
+			}
+		}
+
+		var get_scores = function() {
+			var table = $('#results-table').DataTable();
+			table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
+				var d = this.data();
+				if (d["Source URL"] != '') {
+					console.log('Checking:' + d['Claim']['value']);
+					verifyClaim(d["Claim"]["value"], d["Source URL"]["value"], rowIdx);
+				}
+			} );
+		}
+
+		var update_cell = function(row_idx, data) {
+			if (data["passages"].length > 0) {
+				$('#results-table').DataTable().cell( row_idx, 3 ).data( data["passages"][0]["passage"] ).draw();
+				$('#results-table').DataTable().cell( row_idx, 4 ).data( data["passages"][0]["score"].toFixed(3) ).draw();
+			} else {
+				$('#results-table').DataTable().cell( row_idx, 3 ).data( "--" ).draw();
+				$('#results-table').DataTable().cell( row_idx, 4 ).data( "--" ).draw();
+			}
+		}
+
+		var update_title = function(data) {
+			document.getElementById('page_title').value = data['query']['random'][0]['title'];
+			document.getElementById('page_title').parentNode.className = 'placeholder';
+		}
+
+		var verifyClaim = function(wiki_claim, source_url, rowIdx) {
+			var claimVerifyURL = "http://localhost:3000/api/verify-claim";
+			$.post(claimVerifyURL,
+			      {'wiki_claim': wiki_claim, 'source_url': source_url},
+			      function(data, status) {
+			          if(status === "success") {
+			              update_cell(rowIdx, data);
+					  }
+				  },
+				  "json");
+	  	}
+
+	  	var querySideAPI = function() {
+	  		if (!document.getElementById('page_title').value) {
+				var randomPageQueryURL = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=random&rnlimit=1&rnnamespace=0&origin=*";
+				$.ajax(randomPageQueryURL, {success: update_title.bind(this),
+							  error: function(jqxmlhr, status, error){console.log(status + ": " + error)},
+							  async: false
+							  }
+				  );
+			}
+
+			var getAllClaimsURL = "http://localhost:3000/api/get-all-claims?title=" + document.getElementById('page_title').value;
+			$("#results").empty();
+			$.ajax(getAllClaimsURL, {success: render_results.bind(this),
+							  error: function(jqxmlhr, status, error){console.log(status + ": " + error)}
+							  }
+				  );
+	  	}
+	</script>
+
+</body>
+</html>
