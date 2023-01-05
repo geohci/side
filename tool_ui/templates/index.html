@@ -128,14 +128,14 @@
 				$("#results").append('<br><h3><a href="' + data["article"] + '">' + document.getElementById('page_title').value + '</a></h3>');
 			  	if (data["claims"].length > 0) {
 					var table_data = [];
-					var table_html = '<table id="results-table">';
+					var table_html = '<table id="results-table" class="cell-border">';
 					table_html += '<thead><tr><th>Section</th><th>Claim</th><th>Source URL</th><th>Best Passage</th><th>Score</th></tr></thead>';
 					table_html += '</table>';
 					$("#results").append(table_html);
 					for (var c_idx in data["claims"]) {
 						var row = {};
 						row['Section'] = {"display": data["claims"][c_idx]["section"], "sort": c_idx};
-						row['Claim'] = {"value":data["claims"][c_idx]["text"], "display":'<p>' + data["claims"][c_idx]["text"].replace('[CIT]', '<b>[CIT]</b>') + '</p>'};
+						row['Claim'] = {"value":data["claims"][c_idx]["text"], "display":'<p>' + data["claims"][c_idx]["text"].split("[CIT]")[0] + '<sup>[CIT]</sup>' + '</p>'};
 						row['Source URL'] = {"value":data["claims"][c_idx]["url"], "display":'<a href="' + data["claims"][c_idx]["url"] + '">' + data["claims"][c_idx]["url"] + '</a>'};
 						row['Best Passage'] = '';
 						row['Score'] = '';
