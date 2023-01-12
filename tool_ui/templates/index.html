@@ -201,7 +201,7 @@
 		}
 
 		var verifyClaim = function(wiki_claim, source_url, rowIdx) {
-			var claimVerifyURL = "http://localhost:3000/api/verify-claim";
+			var claimVerifyURL = "https://citation-evaluation.wmcloud.org/api/verify-claim";
 			$.post(claimVerifyURL,
 			      {'wiki_claim': wiki_claim, 'source_url': source_url},
 			      function(data, status) {
@@ -222,7 +222,7 @@
 				  );
 			}
 
-			var getAllClaimsURL = "http://localhost:3000/api/get-all-claims?title=" + document.getElementById('page_title').value;
+			var getAllClaimsURL = "https://citation-evaluation.wmcloud.org/api/get-all-claims?title=" + document.getElementById('page_title').value;
 			$("#results").empty();
 			$.ajax(getAllClaimsURL, {success: render_results.bind(this),
 							  error: function(jqxmlhr, status, error){console.log(status + ": " + error)}
