@@ -30,8 +30,6 @@ pip install -r ${TMP_PATH}/${REPO_LBL}/requirements.txt
 
 echo "Setting up ownership..."  # makes www-data (how nginx is run) owner + group for all data etc.
 chown -R www-data:www-data ${ETC_PATH}
-chown -R www-data:www-data ${SRV_PATH}
-chown -R www-data:www-data ${LOG_PATH}
 chown -R www-data:www-data ${LIB_PATH}
 chown -R www-data:www-data ${TMP_PATH}
 
