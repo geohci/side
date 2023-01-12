@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # restart API endpoint with new code
 
-# these should match the variables in cloudvps_setup.sh
+# these can be changed but most other variables should be left alone
 APP_LBL='api-endpoint'  # descriptive label for endpoint-related directories
-REPO_LBL='repo'  # directory where repo code will go
-GIT_CLONE_HTTPS='https://github.com/geohci/research-api-endpoint-template.git'  # for `git clone`
-GIT_BRANCH='gunicorn'
+REPO_LBL='side'  # directory where repo code will go
+GIT_CLONE_HTTPS='https://github.com/geohci/side'  # for `git clone`
 
 # derived paths
 ETC_PATH="/etc/${APP_LBL}"  # app config info, scripts, ML models, etc.
@@ -16,7 +15,7 @@ LIB_PATH="/var/lib/${APP_LBL}"  # where virtualenv will sit
 rm -rf ${TMP_PATH}
 mkdir -p ${TMP_PATH}
 
-git clone --branch ${GIT_BRANCH} ${GIT_CLONE_HTTPS} ${TMP_PATH}/${REPO_LBL}
+git clone ${GIT_CLONE_HTTPS} ${TMP_PATH}/${REPO_LBL}
 
 # reinstall virtualenv
 rm -rf ${LIB_PATH}/p3env
@@ -29,13 +28,18 @@ pip install wheel
 pip install gunicorn
 pip install -r ${TMP_PATH}/${REPO_LBL}/requirements.txt
 
-# update config / code -- if only changing Python and not nginx/uwsgi code, then much of this can be commented out
+echo "Setting up ownership..."  # makes www-data (how nginx is run) owner + group for all data etc.
+chown -R www-data:www-data ${ETC_PATH}
+chown -R www-data:www-data ${SRV_PATH}
+chown -R www-data:www-data ${LOG_PATH}
+chown -R www-data:www-data ${LIB_PATH}
+
 echo "Copying configuration files..."
-cp ${TMP_PATH}/${REPO_LBL}/model/config/gunicorn.conf.py ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/model/wsgi.py ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/model/flask_config.yaml ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/model/config/model.service /etc/systemd/system/
-cp ${TMP_PATH}/${REPO_LBL}/model/config/model.nginx /etc/nginx/sites-available/model
+cp ${TMP_PATH}/${REPO_LBL}/verify_wikipedia ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/api_config/gunicorn.conf.py ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/api_config/flask_config.yaml ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/api_config/model.service /etc/systemd/system/
+cp ${TMP_PATH}/${REPO_LBL}/api_config/model.nginx /etc/nginx/sites-available/model
 if [[ -f "/etc/nginx/sites-enabled/model" ]]; then
     unlink /etc/nginx/sites-enabled/model
 fi

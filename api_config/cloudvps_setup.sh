@@ -32,9 +32,9 @@ mkdir -p ${LIB_PATH}
 echo "Downloading model, hang on..."
 cd ${TMP_PATH}
 wget -O verifier.tar.gz ${MODEL_WGET}
-tar –xvzf verifier.tar.gz
+tar -xvzf verifier.tar.gz --exclude=verifier/outputs/checkpoint.best_validation_loss --exclude=*wafer-dev-kiltweb.jsonl*
 rm verifier.tar.gz  # large file; not needed now that extracted
-rm verifier/outputs/checkpoint.best_validation_loss  # alternative model checkpoint and large file; not needed
+mv "verifier/predictions/best_validation_acc__wafer_ccnet\"" "verifier/predictions/best_validation_acc__wafer_ccnet"
 mv verifier ${ETC_PATH}/resources
 
 echo "Updating the system..."
@@ -51,7 +51,7 @@ python3 -m venv ${LIB_PATH}/p3env
 source ${LIB_PATH}/p3env/bin/activate
 
 echo "Cloning repositories..."
-git clone --branch ${GIT_BRANCH} ${GIT_CLONE_HTTPS} ${TMP_PATH}/${REPO_LBL}
+git clone ${GIT_CLONE_HTTPS} ${TMP_PATH}/${REPO_LBL}
 
 echo "Installing repositories..."
 pip install wheel
