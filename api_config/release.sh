@@ -25,7 +25,6 @@ source ${LIB_PATH}/p3env/bin/activate
 
 echo "Installing repositories..."
 pip install wheel
-pip install gunicorn
 pip install -r ${TMP_PATH}/${REPO_LBL}/requirements.txt
 
 echo "Setting up ownership..."  # makes www-data (how nginx is run) owner + group for all data etc.
@@ -35,10 +34,9 @@ chown -R www-data:www-data ${TMP_PATH}
 
 echo "Copying configuration files..."
 cp -r ${TMP_PATH}/${REPO_LBL}/verify_wikipedia ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/api_config/gunicorn.conf.py ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/api_config/uwsgi.ini ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/flask_config.yaml ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/model.service /etc/systemd/system/
-cp ${TMP_PATH}/${REPO_LBL}/api_config/gunicorn.socket /etc/systemd/system/
 cp ${TMP_PATH}/${REPO_LBL}/api_config/model.nginx /etc/nginx/sites-available/model
 if [[ -f "/etc/nginx/sites-enabled/model" ]]; then
     unlink /etc/nginx/sites-enabled/model
@@ -47,9 +45,7 @@ ln -s /etc/nginx/sites-available/model /etc/nginx/sites-enabled/
 
 echo "Enabling and starting services..."
 systemctl enable model.service  # uwsgi starts when server starts up
-systemctl enable gunicorn.socket  # uwsgi starts when server starts up
 systemctl daemon-reload  # refresh state
 
-systemctl restart gunicorn.socket  # start up uwsgi
 systemctl restart model.service  # start up uwsgi
 systemctl restart nginx  # start up nginx
