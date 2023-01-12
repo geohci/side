@@ -16,7 +16,7 @@ umask = 7
 # more workers = less stallilng during IO operations
 # if application is CPU-bound, this might as well just match the number of CPUs
 # https://docs.gunicorn.org/en/stable/settings.html#workers
-workers = (multiprocessing.cpu_count() * 2) + 1
+workers = multiprocessing.cpu_count() + 1
 
 # Workers silent for more than this many seconds are killed and restarted
 # https://docs.gunicorn.org/en/stable/settings.html#timeout

@@ -63,9 +63,10 @@ chown -R www-data:www-data ${ETC_PATH}
 chown -R www-data:www-data ${SRV_PATH}
 chown -R www-data:www-data ${LOG_PATH}
 chown -R www-data:www-data ${LIB_PATH}
+chown -R www-data:www-data ${TMP_PATH}
 
 echo "Copying configuration files..."
-cp ${TMP_PATH}/${REPO_LBL}/verify_wikipedia ${ETC_PATH}
+cp -r ${TMP_PATH}/${REPO_LBL}/verify_wikipedia ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/gunicorn.conf.py ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/flask_config.yaml ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/model.service /etc/systemd/system/
