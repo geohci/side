@@ -18,9 +18,5 @@ outputs/
 logs/
 logs/*
 
-# models
-models
-models/
-
 # src
 src/
