@@ -49,7 +49,7 @@ app = Flask(__name__)
 # load in app user-agent or any other app config
 # TODO: update for Cloud VPS
 app.config.update(
-    yaml.safe_load(open(os.path.join(__updir, 'api_config', 'flask_config.yaml'))))
+    yaml.safe_load(open(os.path.join(__updir, 'flask_config.yaml'))))
 
 # Enable CORS for API endpoints
 cors = CORS(app, resources={r'/api/*': {'origins': '*'}})
