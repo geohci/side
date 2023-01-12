@@ -238,7 +238,7 @@ def load_model():
             "retriever=reranker",
             "retriever.ctx_src=wafer_ccnet",
             "retriever.batch_size=2",
-            "retriever.checkpoint_dir='/Users/ijohnson/Downloads/verifier'",
+            "retriever.checkpoint_dir='/etc/api-endpoint/resources/verifier'",
         ])
 
     test_model()
