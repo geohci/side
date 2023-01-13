@@ -21,7 +21,7 @@ worker_class = 'gevent'
 
 # Workers silent for more than this many seconds are killed and restarted
 # https://docs.gunicorn.org/en/stable/settings.html#timeout
-timeout = 30
+timeout = 60
 
 # Load application code before the worker processes are forked
 # This means that imports and code run on start-up -- e.g., loading models -- are shared between processes
