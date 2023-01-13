@@ -11,4 +11,3 @@ PyYAML
 torch
 tqdm
 transformers
-uWSGI

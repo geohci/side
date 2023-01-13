@@ -47,7 +47,6 @@ from passages.wiki_claim import get_claims
 app = Flask(__name__)
 
 # load in app user-agent or any other app config
-# TODO: update for Cloud VPS
 app.config.update(
     yaml.safe_load(open(os.path.join(__updir, 'flask_config.yaml'))))
 
@@ -238,7 +237,7 @@ def load_model():
             "retriever=reranker",
             "retriever.ctx_src=wafer_ccnet",
             "retriever.batch_size=2",
-            "retriever.checkpoint_dir='/etc/api-endpoint/resources/verifier'",
+            "retriever.checkpoint_dir='/extrastorage/verifier'",
         ])
 
     test_model()

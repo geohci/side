@@ -16,6 +16,7 @@ TMP_PATH="/tmp/${APP_LBL}"  # store temporary files created as part of setting u
 LOG_PATH="/var/log/gunicorn"  # application log data
 LIB_PATH="/var/lib/${APP_LBL}"  # where virtualenv will sit
 HF_CACHE_PATH="/var/www/.cache"
+MODEL_PATH="/extrastorage"
 
 echo "Setting up paths..."
 rm -rf ${TMP_PATH}
@@ -25,7 +26,6 @@ rm -rf ${LOG_PATH}
 rm -rf ${LIB_PATH}
 mkdir -p ${TMP_PATH}
 mkdir -p ${SRV_PATH}/sock
-mkdir -p ${ETC_PATH}/resources
 mkdir -p ${LOG_PATH}
 mkdir -p ${LIB_PATH}
 mkdir -p ${HF_CACHE_PATH}
@@ -38,7 +38,7 @@ wget -O verifier.tar.gz ${MODEL_WGET}
 tar -xvzf verifier.tar.gz --exclude=verifier/outputs/checkpoint.best_validation_loss --exclude=*wafer-dev-kiltweb.jsonl*
 rm verifier.tar.gz  # large file; not needed now that extracted
 mv "verifier/predictions/best_validation_acc__wafer_ccnet\"" "verifier/predictions/best_validation_acc__wafer_ccnet"
-mv verifier ${ETC_PATH}/resources
+mv verifier ${MODEL_PATH}
 
 echo "Updating the system..."
 apt-get update
