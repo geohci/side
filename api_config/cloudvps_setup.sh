@@ -71,7 +71,7 @@ chown -R www-data:www-data ${HF_CACHE_PATH}
 
 echo "Copying configuration files..."
 cp -r ${TMP_PATH}/${REPO_LBL}/verify_wikipedia ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/api_config/gunicorn.conf.py ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/api_config/uwsgi.ini ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/flask_config.yaml ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/model.service /etc/systemd/system/
 cp ${TMP_PATH}/${REPO_LBL}/api_config/model.nginx /etc/nginx/sites-available/model
