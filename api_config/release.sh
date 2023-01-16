@@ -5,7 +5,7 @@
 APP_LBL='api-endpoint'  # descriptive label for endpoint-related directories
 REPO_LBL='side'  # directory where repo code will go
 GIT_CLONE_HTTPS='https://github.com/geohci/side'  # for `git clone`
-GIT_BRANCH="gunicorn"
+GIT_BRANCH="main"
 
 # derived paths
 ETC_PATH="/etc/${APP_LBL}"  # app config info, scripts, ML models, etc.

@@ -5,7 +5,7 @@
 APP_LBL='api-endpoint'  # descriptive label for endpoint-related directories
 REPO_LBL='side'  # directory where repo code will go
 GIT_CLONE_HTTPS='https://github.com/geohci/side'  # for `git clone`
-GIT_BRANCH="gunicorn"
+GIT_BRANCH="main"
 
 MODEL_WGET='https://dl.fbaipublicfiles.com/side/verifier.tar.gz'
 
@@ -68,6 +68,7 @@ chown -R www-data:www-data ${LOG_PATH}
 chown -R www-data:www-data ${LIB_PATH}
 chown -R www-data:www-data ${TMP_PATH}
 chown -R www-data:www-data ${HF_CACHE_PATH}
+chown -R www-data:www-data ${MODEL_PATH}
 
 echo "Copying configuration files..."
 cp -r ${TMP_PATH}/${REPO_LBL}/verify_wikipedia ${ETC_PATH}
