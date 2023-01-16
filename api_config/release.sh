@@ -5,6 +5,7 @@
 APP_LBL='api-endpoint'  # descriptive label for endpoint-related directories
 REPO_LBL='side'  # directory where repo code will go
 GIT_CLONE_HTTPS='https://github.com/geohci/side'  # for `git clone`
+GIT_BRANCH="main"
 
 # derived paths
 ETC_PATH="/etc/${APP_LBL}"  # app config info, scripts, ML models, etc.
@@ -15,7 +16,7 @@ LIB_PATH="/var/lib/${APP_LBL}"  # where virtualenv will sit
 rm -rf ${TMP_PATH}
 mkdir -p ${TMP_PATH}
 
-git clone ${GIT_CLONE_HTTPS} ${TMP_PATH}/${REPO_LBL}
+git clone --branch ${GIT_BRANCH} ${GIT_CLONE_HTTPS} ${TMP_PATH}/${REPO_LBL}
 
 # reinstall virtualenv
 rm -rf ${LIB_PATH}/p3env
@@ -25,6 +26,7 @@ source ${LIB_PATH}/p3env/bin/activate
 
 echo "Installing repositories..."
 pip install wheel
+pip install gunicorn[gevent]
 pip install -r ${TMP_PATH}/${REPO_LBL}/requirements.txt
 
 echo "Setting up ownership..."  # makes www-data (how nginx is run) owner + group for all data etc.
@@ -34,7 +36,7 @@ chown -R www-data:www-data ${TMP_PATH}
 
 echo "Copying configuration files..."
 cp -r ${TMP_PATH}/${REPO_LBL}/verify_wikipedia ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/api_config/uwsgi.ini ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/api_config/gunicorn.conf.py ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/flask_config.yaml ${ETC_PATH}
 cp ${TMP_PATH}/${REPO_LBL}/api_config/model.service /etc/systemd/system/
 cp ${TMP_PATH}/${REPO_LBL}/api_config/model.nginx /etc/nginx/sites-available/model
