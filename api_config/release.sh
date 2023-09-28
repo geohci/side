@@ -27,6 +27,7 @@ source ${LIB_PATH}/p3env/bin/activate
 echo "Installing repositories..."
 pip install wheel
 pip install gunicorn[gevent]
+pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install -r ${TMP_PATH}/${REPO_LBL}/requirements.txt
 
 echo "Setting up ownership..."  # makes www-data (how nginx is run) owner + group for all data etc.

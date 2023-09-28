@@ -8,6 +8,5 @@ mwparserfromhell
 omegaconf
 pywikibot
 PyYAML
-torch
 tqdm
 transformers
