@@ -1,7 +1,7 @@
 beautifulsoup4
 Flask
 Flask-Cors
-hydra-core
+hydra-core==1.1.1
 jsonlines
 mwapi
 mwparserfromhell
@@ -9,4 +9,4 @@ omegaconf
 pywikibot
 PyYAML
 tqdm
-transformers
+transformers==4.9
