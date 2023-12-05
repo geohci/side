@@ -9,4 +9,4 @@ omegaconf
 pywikibot
 PyYAML
 tqdm
-transformers==4.9
+transformers==4.33
